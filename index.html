@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Plano Didáctico Maravilla V22 | Motor Lector Nativo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; }
+        .step { display: none; }
+        .active { display: block; animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .preview-box { background: white; padding: 40px; border: 1px solid #ccc; font-family: 'Times New Roman', serif; color: black; line-height: 1.2; }
+        .table-word { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 10pt; }
+        .table-word th, .table-word td { border: 1px solid black; padding: 4px; vertical-align: top; }
+        .table-word th { background: #f0f0f0; font-weight: bold; text-align: center; }
+        
+        .ses-proy { border-left: 6px solid #2563eb; background: #eff6ff; }
+        .ses-cont { border-left: 6px solid #ca8a04; background: #fefce8; }
+        .label-sec { font-weight: bold; display: block; margin-top: 4px; color: #1e40af; text-transform: uppercase;}
+    </style>
+</head>
+<body>
+
+<div id="login" class="fixed inset-0 bg-slate-800 flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-xl w-96 text-center border-t-8 border-blue-800 shadow-2xl">
+        <img src="LOGO2.JPG" alt="Logo Maravill Aula" class="w-24 mx-auto mb-4">
+        <h1 class="text-2xl font-black text-slate-800 mb-0">MARAVILL AULA ZONA02</h1>
+        <p class="text-[11px] font-bold text-slate-500 mb-6 uppercase tracking-widest">DISEÑO DE PLANO DIDACTICO</p>
+        <input type="password" id="pass" placeholder="CCT Institucional" class="w-full p-3 border rounded-lg mb-4 text-center">
+        <button onclick="auth()" class="w-full bg-blue-800 text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition">INGRESAR</button>
+    </div>
+</div>
+
+<div id="app" class="hidden min-h-screen pb-20">
+    <header class="bg-white p-4 shadow-sm sticky top-0 z-40 border-b flex justify-between items-center">
+        <div class="font-bold text-slate-700 uppercase flex items-center gap-2">
+            <span class="bg-blue-800 text-white w-8 h-8 flex items-center justify-center rounded-full text-xs">M</span>
+            Mtra. Maravilla | Fase 6
+        </div>
+        <div class="text-xs font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full" id="step-indicator">Paso 1: Datos</div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6 space-y-6">
+
+        <div id="s1" class="step active bg-white p-6 rounded-xl shadow border">
+            <h2 class="text-lg font-bold text-blue-900 mb-4 border-b pb-2">1. Identificación y Carga de Programa Sintético</h2>
+            
+            <div id="caja_word" class="mb-6 p-6 bg-blue-50 border-2 border-blue-400 border-dashed rounded-lg text-center">
+                <p class="text-sm font-bold text-blue-900 mb-2 uppercase">📥 PASO OBLIGATORIO: CARGAR CONTENIDOS SEP</p>
+                <p class="text-xs text-blue-700 mb-4">Sube el archivo "CAMPOS FORMATIVOS.docx" para extraer los Contenidos.</p>
+                <input type="file" accept=".docx" id="file_upload" onchange="leerArchivoWord(event)" class="mx-auto block w-full max-w-md text-sm text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-blue-700 file:text-white hover:file:bg-blue-800 cursor-pointer shadow-lg">
+                <div id="estado_db" class="mt-4 text-sm font-bold text-red-600">❌ Base de datos vacía. Sube el archivo para poder avanzar.</div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" id="docente" placeholder="Nombre del Docente" class="p-2 border rounded w-full bg-slate-50">
+                <select id="grado" onchange="loadDB()" class="p-2 border rounded w-full bg-slate-50"><option value="1">1° Grado</option><option value="2">2° Grado</option><option value="3">3° Grado</option></select>
+                <select id="campo" onchange="loadDB()" class="p-2 border rounded w-full bg-slate-50">
+                    <option value="">Seleccione Campo...</option>
+                    <option value="LENGUAJES">LENGUAJES</option><option value="SABERES">SABERES Y P. CIENTÍFICO</option>
+                    <option value="ETICA">ÉTICA, NATURALEZA Y SOCIEDAD</option><option value="HUMANO">DE LO HUMANO Y LO COM.</option>
+                </select>
+                <select id="disciplina" onchange="renderContenidos(); revisarEnfasis();" class="p-2 border rounded w-full bg-slate-50"></select>
+            </div>
+
+            <div id="contenedor_enfasis" style="display: none;" class="mt-3 w-full border-t border-blue-200 pt-2">
+                <label class="text-[11px] font-black text-blue-900 mb-1 block uppercase">⚙️ Énfasis (Obligatorio para Artes/Tecnología):</label>
+                <input type="text" id="enfasis_tecnologia" class="w-full p-2 border border-blue-400 rounded text-xs bg-blue-50 text-blue-900 font-bold" placeholder="Ej. Informática, Danza, Ofimática, Teatro...">
+            </div>
+
+            <select id="metodo" class="p-2 border rounded w-full col-span-2 bg-slate-50 mt-3">
+                <option value="ABPC">ABPC - Proyectos Comunitarios (11 Momentos)</option>
+                <option value="STEAM">STEAM - Indagación (5 Fases + Prototipo)</option>
+                <option value="ABP">ABP - Aprendizaje Basado en Problemas (6 Pasos)</option>
+                <option value="AS">AS - Aprendizaje Servicio (5 Etapas)</option>
+            </select>
+
+            <button onclick="go(2)" class="mt-6 bg-blue-800 text-white px-8 py-2 rounded font-bold float-right shadow-lg">SIGUIENTE</button>
+        </div>
+
+        <div id="s2" class="step bg-white p-6 rounded-xl shadow border">
+            <h2 class="text-lg font-bold text-blue-900 mb-4 border-b pb-2">2. Estructura e IA (Perfil, Ejes y Estrategias)</h2>
+            <textarea id="problema" onblur="runIA_Vincula()" placeholder="Describa la Problematización..." class="w-full p-3 border rounded h-24 mb-3 bg-slate-50"></textarea>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" id="nombre_proy" placeholder="Nombre del Proyecto" class="p-2 border rounded bg-slate-50">
+                <input type="text" id="producto" placeholder="Producto Final" class="p-2 border rounded bg-slate-50">
+            </div>
+            <div class="mt-4 bg-blue-50 p-4 rounded border border-blue-200">
+                <p class="text-xs font-bold text-blue-800 uppercase mb-2">Selección Automática IA:</p>
+                <div class="grid grid-cols-1 gap-2 text-xs">
+                    <div class="bg-white p-2 border rounded"><strong>Perfil de Egreso:</strong> <ul id="ia_perfil" class="list-disc ml-4 mt-1"></ul></div>
+                    <div class="bg-white p-2 border rounded"><strong>Ejes Articuladores:</strong> <ul id="ia_ejes" class="list-disc ml-4 mt-1"></ul></div>
+                    <div class="bg-white p-2 border rounded"><strong>Estrategias Nacionales:</strong> <ul id="ia_estrategias" class="list-disc ml-4 mt-1"></ul></div>
+                    <div class="bg-white p-2 border rounded"><strong>Escenario:</strong> <span id="ia_escenario"></span></div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-between">
+                <button onclick="go(1)" class="text-slate-500 font-bold">ATRÁS</button>
+                <button onclick="go(3)" class="bg-blue-800 text-white px-8 py-2 rounded font-bold shadow-lg">SIGUIENTE</button>
+            </div>
+        </div>
+
+        <div id="s3" class="step bg-white p-6 rounded-xl shadow border">
+            <h2 class="text-lg font-bold text-blue-900 mb-4 border-b pb-2">3. Articulación: Situación Problema – Contenidos – Codiseño</h2>
+            <div id="tabla_articulacion" class="overflow-x-auto"></div>
+            <div class="mt-6 flex justify-between">
+                <button onclick="go(2)" class="text-slate-500 font-bold">ATRÁS</button>
+                <button onclick="renderArticulacion(); go(4);" class="bg-blue-800 text-white px-8 py-2 rounded font-bold shadow-lg">VER CONTENIDOS</button>
+            </div>
+        </div>
+
+        <div id="s4" class="step bg-white p-6 rounded-xl shadow border">
+            <h2 class="text-lg font-bold text-blue-900 mb-2">4. Selección de Contenidos y PDA</h2>
+            <div id="catalogo_contenidos" class="space-y-2 max-h-[400px] overflow-y-auto border rounded p-3 bg-slate-50"></div>
+            <div class="mt-6 flex justify-between"><button onclick="go(3)" class="text-slate-500 font-bold">ATRÁS</button><button onclick="go(5)" class="bg-blue-800 text-white px-8 py-2 rounded font-bold shadow-lg">GENERAR SESIONES</button></div>
+        </div>
+
+        <div id="s5" class="step bg-white p-6 rounded-xl shadow border">
+            <h2 class="text-lg font-bold text-blue-900 mb-4 border-b pb-2">5. Desarrollo del Proceso Didáctico</h2>
+            
+            <div id="info_previa_s5"></div>
+
+            <div class="flex justify-between items-center mb-4 bg-slate-100 p-4 rounded-lg border">
+                <div class="flex gap-2 items-center">
+                    <label class="text-xs font-bold uppercase text-slate-800">Total Sesiones:</label>
+                    <input type="number" id="num_sesiones" min="10" max="30" value="15" class="w-16 p-2 border rounded text-center font-bold">
+                </div>
+                <button onclick="generarSesionesIA()" class="bg-green-600 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-green-700 transition">DESARROLLAR CON IA</button>
+            </div>
+            
+            <div id="contenedor_sesiones" class="space-y-6 mt-6"></div>
+            
+            <div class="mt-6 flex justify-between border-t pt-4">
+                <button onclick="go(4)" class="text-slate-500 font-bold">ATRÁS</button>
+                <button onclick="go(6)" class="bg-blue-800 text-white px-8 py-2 rounded font-bold shadow-lg">IR A EVALUACIÓN</button>
+            </div>
+        </div>
+
+        <div id="s6" class="step bg-white p-6 rounded-xl shadow border">
+            <h2 class="text-lg font-bold text-blue-900 mb-4 border-b pb-2">6. Desarrollo de Instrumentos de Evaluación Formativa</h2>
+            <div id="instrumentos_generados" class="space-y-6"></div>
+            <div class="mt-8 flex justify-between"><button onclick="go(5)" class="text-slate-500 font-bold">ATRÁS</button><button onclick="go(7)" class="bg-blue-800 text-white px-8 py-2 rounded font-bold shadow-lg">VISTA PREVIA Y DESCARGA</button></div>
+        </div>
+
+        <div id="s7" class="step bg-white p-6 rounded-xl shadow border">
+            <h2 class="text-lg font-bold text-blue-900 mb-4 border-b pb-2">7. Vista Previa del Plano Didáctico</h2>
+            <div class="mb-4 flex justify-end">
+                <button onclick="descargarWord()" class="bg-blue-600 text-white px-6 py-3 rounded font-bold shadow-xl hover:bg-blue-700">DESCARGAR A WORD EDITABLE</button>
+            </div>
+            <div id="documento_final" class="preview-box">
+                <div class="header-doc" style="border-bottom:2px solid black; padding-bottom:10px; margin-bottom:15px;">
+                    <table style="width:100%; border-collapse: collapse; border: none;">
+                        <tr>
+                            <td style="width:15%; text-align:left; vertical-align:middle; border: none;">
+                                <img src="LOGO2.JPG" alt="Logo" style="width:70px; height:auto;">
+                            </td>
+                            <td style="width:85%; text-align:center; vertical-align:middle; border: none;">
+                                <span style="font-weight:bold; font-size:12pt;">SECRETARÍA DE EDUCACIÓN PÚBLICA DEL ESTADO DE TLAXCALA</span><br>
+                                <span style="font-size:10pt;">PLANO DIDÁCTICO DE EDUCACIÓN SECUNDARIA - FASE 6</span><br>
+                                <span style="font-size:9pt;">CCT: 29DES0039G</span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <p style="font-weight:bold; font-size:10pt; background:#f0f0f0; border:1px solid black; padding:2px;">I. GENERALIDADES</p>
+                <table class="table-word">
+                    <tr><td><strong>Docente:</strong> <span id="p_docente"></span></td><td><strong>Disciplina:</strong> <span id="p_disciplina"></span></td><td><strong>Grado:</strong> <span id="p_grado"></span></td></tr>
+                    <tr><td colspan="3"><strong>Problematización:</strong> <span id="p_problema"></span></td></tr>
+                    <tr><td><strong>Proyecto:</strong> <span id="p_proyecto"></span></td><td><strong>Producto Final:</strong> <span id="p_producto"></span></td><td><strong>Metodología:</strong> <span id="p_metodo"></span></td></tr>
+                    <tr><td colspan="3"><strong>Vinculación:</strong><br><em>Perfil:</em> <span id="p_perfil"></span><br><em>Ejes:</em> <span id="p_ejes"></span><br><em>Estrategias:</em> <span id="p_estrategias"></span></td></tr>
+                </table>
+                <p style="font-weight:bold; font-size:10pt; background:#f0f0f0; border:1px solid black; padding:2px; margin-top:10px;">II. ARTICULACIÓN E INTERDISCIPLINARIEDAD</p>
+                <div id="p_tabla_artic"></div>
+                <p style="font-weight:bold; font-size:10pt; background:#f0f0f0; border:1px solid black; padding:2px; margin-top:10px;">III. CONTENIDOS Y PDA SELECCIONADOS</p>
+                <div id="p_contenidos" style="border:1px solid black; padding:5px; font-size:9pt; margin-bottom:10px;"></div>
+                <p style="font-weight:bold; font-size:10pt; background:#f0f0f0; border:1px solid black; padding:2px; margin-top:10px;">IV. DESARROLLO DEL PROCESO DIDÁCTICO</p>
+                <table class="table-word">
+                    <thead><tr><th width="5%">Ses</th><th width="15%">Tipo</th><th width="45%">Descripción de Actividades (Con Enfoque Formativo)</th><th width="10%">Eval. Form.</th><th width="15%">Materiales</th><th width="10%">Prod. Parcial</th></tr></thead>
+                    <tbody id="p_body_sesiones"></tbody>
+                </table>
+                <p style="font-weight:bold; font-size:10pt; background:#f0f0f0; border:1px solid black; padding:2px; margin-top:10px;">V. EVALUACIÓN FORMATIVA (INSTRUMENTOS DESARROLLADOS)</p>
+                <div id="p_instrumentos_des" style="font-size:9pt;"></div>
+            </div>
+            <div class="mt-6 flex justify-between"><button onclick="go(6)" class="text-slate-500 font-bold">ATRÁS</button></div>
+        </div>
+    </main>
+</div>
+
+<script>
+let DB_FULL = []; 
+
+async function leerArchivoWord(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    document.getElementById('estado_db').innerHTML = `<span class="text-blue-600 font-bold">⏳ Analizando y extrayendo contenidos...</span>`;
+    try {
+        const zip = await JSZip.loadAsync(file);
+        const docXml = await zip.file("word/document.xml").async("string");
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(docXml, "application/xml");
+        DB_FULL = []; 
+        let current_disc = "";
+        const body = xmlDoc.getElementsByTagName("w:body")[0] || xmlDoc.getElementsByTagNameNS("*", "body")[0];
+        const elements = body.childNodes;
+        
+        for(let i=0; i<elements.length; i++) {
+            const el = elements[i];
+            const tagName = el.localName || el.nodeName;
+            if(tagName.includes('p')) {
+                const textRaw = el.textContent.toUpperCase().trim();
+                const textNormalizado = textRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                if(textNormalizado.length > 0 && textNormalizado.length < 80) {
+                    if(textNormalizado.includes('LENGUA INDIGENA')) current_disc = 'IGNORAR';
+                    else if(textNormalizado.includes('ESPANOL')) current_disc = 'ESPAÑOL';
+                    else if(textNormalizado.includes('INGLES')) current_disc = 'INGLES';
+                    else if(textNormalizado.includes('ARTES')) current_disc = 'ARTES';
+                    else if(textNormalizado.includes('MATEMATICAS')) current_disc = 'MATEMATICAS';
+                    else if(textNormalizado.includes('BIOLOGIA')) current_disc = 'BIOLOGIA';
+                    else if(textNormalizado.includes('EDUCACION FISICA')) current_disc = 'ED. FISICA';
+                    else if(textNormalizado.includes('FISICA') && !textNormalizado.includes('EDUCACION')) current_disc = 'FISICA';
+                    else if(textNormalizado.includes('QUIMICA')) current_disc = 'QUIMICA';
+                    else if(textNormalizado.includes('GEOGRAFIA')) current_disc = 'GEOGRAFIA';
+                    else if(textNormalizado.includes('HISTORIA')) current_disc = 'HISTORIA';
+                    else if(textNormalizado.includes('CIVICA') || textNormalizado.includes('ETICA')) current_disc = 'F.C.E';
+                    else if(textNormalizado.includes('TECNOLOGIA')) current_disc = 'TECNOLOGIA';
+                    else if(textNormalizado.includes('SOCIOEMOCIONAL') || textNormalizado.includes('TUTORIA')) current_disc = 'SOCIOEMOCIONAL';
+                }
+            }
+            else if(tagName.includes('tbl') && current_disc !== "" && current_disc !== 'IGNORAR') {
+                const rows = Array.from(el.childNodes).filter(n => (n.localName || n.nodeName).includes("tr"));
+                for(let j=0; j<rows.length; j++) {
+                    const cells = Array.from(rows[j].childNodes).filter(n => (n.localName || n.nodeName).includes("tc"));
+                    if(cells.length < 2) continue;
+                    const cont = cells[0].textContent.trim();
+                    if(!cont || cont.toUpperCase().includes('CONTENIDO')) continue;
+                    const is3Grades = ['ESPAÑOL', 'INGLES', 'ARTES', 'MATEMATICAS', 'HISTORIA', 'F.C.E', 'TECNOLOGIA', 'ED. FISICA', 'SOCIOEMOCIONAL'].includes(current_disc);
+                    if (is3Grades && cells.length >= 4) {
+                        const pda1 = cells[1].textContent.trim();
+                        const pda2 = cells[2].textContent.trim();
+                        const pda3 = cells[3].textContent.trim();
+                        if(pda1.length > 5 && pda1 !== '-') DB_FULL.push({d: current_disc, g: "1", c: cont, pda: pda1});
+                        if(pda2.length > 5 && pda2 !== '-') DB_FULL.push({d: current_disc, g: "2", c: cont, pda: pda2});
+                        if(pda3.length > 5 && pda3 !== '-') DB_FULL.push({d: current_disc, g: "3", c: cont, pda: pda3});
+                    } else if (!is3Grades && cells.length >= 2) {
+                        const pda = cells[1].textContent.trim();
+                        if(pda.length > 5 && pda !== '-') {
+                            let gradoAsignado = "1";
+                            if(current_disc === 'FISICA') gradoAsignado = "2";
+                            if(current_disc === 'QUIMICA') gradoAsignado = "3";
+                            DB_FULL.push({d: current_disc, g: gradoAsignado, c: cont, pda: pda});
+                        }
+                    }
+                }
+            }
+        }
+        if(DB_FULL.length > 0) {
+            document.getElementById('estado_db').innerHTML = `✅ ¡ÉXITO! Se extrajeron ${DB_FULL.length} contenidos.`;
+            document.getElementById('estado_db').className = "mt-4 text-sm font-bold text-green-700 bg-green-100 p-3 rounded border border-green-300";
+            if(typeof loadDB === 'function') loadDB(); 
+        } else { document.getElementById('estado_db').innerHTML = `❌ El archivo se leyó pero no se encontraron tablas.`; }
+    } catch(error) { console.error(error); document.getElementById('estado_db').innerHTML = `❌ Ocurrió un error.`; }
+}
+
+const METODOLOGIAS = {
+    ABPC: { fases: ["1. Lanzamiento", "2. Indagación", "3. Construcción", "4. Presentación", "5. Evaluación"] },
+    STEAM: { fases: ["F1. Saberes...", "F2. Plan y acción", "F3. Respuestas...", "F4. Comunicación...", "F5. Reflexión..."] },
+    ABP: { fases: ["P1. Presentemos", "P2. Recolectemos", "P3. Formulemos", "P4. Organicemos", "P5. Vivamos", "P6. Resultados"] },
+    AS: { fases: ["E1. Punto de partida", "E2. Lo que sé...", "E3. Organicemos...", "E4. Creatividad...", "E5. Compartimos..."] }
+};
+
+function getDisciplinasPorGrado(campo, grado) {
+    if(campo === "LENGUAJES") return ["ESPAÑOL", "INGLES", "ARTES"];
+    if(campo === "SABERES") return ["MATEMATICAS", grado==="1"?"BIOLOGIA":grado==="2"?"FISICA":"QUIMICA"];
+    if(campo === "ETICA") return grado==="1" ? ["HISTORIA", "GEOGRAFIA", "F.C.E"] : ["HISTORIA", "F.C.E"];
+    if(campo === "HUMANO") return ["TECNOLOGIA", "ED. FISICA", "SOCIOEMOCIONAL"];
+    return [];
+}
+
+function auth() {
+    if(document.getElementById('pass').value === "1234") {
+        document.getElementById('login').style.display='none';
+        document.getElementById('app').classList.remove('hidden');
+        loadDB();
+    } else { alert("Clave incorrecta. Intente de nuevo con 1234."); }
+}
+
+function go(n) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('s'+n).classList.add('active');
+    document.getElementById('step-indicator').innerText = "Paso " + n;
+    if(n===3) renderArticulacion();
+    if(n===4) renderContenidos();
+    if(n===5) prepararPaso5(); 
+    if(n===6) renderEvaluacion();
+    if(n===7) renderPreview();
+}
+
+function loadDB() {
+    const c = document.getElementById('campo').value;
+    const g = document.getElementById('grado').value;
+    const d = document.getElementById('disciplina');
+    const valorAnterior = d.value;
+    d.innerHTML = "";
+    let opts = getDisciplinasPorGrado(c, g);
+    opts.forEach(o => d.innerHTML += `<option value="${o}">${o}</option>`);
+    if(opts.includes(valorAnterior)) { d.value = valorAnterior; }
+    renderContenidos();
+}
+
+function runIA_Vincula() {
+    document.getElementById('ia_perfil').innerHTML = `<li>V. Desarrollan una forma de pensar propia para analizar su realidad.</li><li>VII. Interpretan fenómenos, hechos y situaciones históricas.</li><li>X. Desarrollan el pensamiento crítico.</li>`;
+    document.getElementById('ia_ejes').innerHTML = `<li>Pensamiento Crítico.</li><li>Inclusión.</li><li>Apropiación de las culturas a través de la lectura.</li>`;
+    document.getElementById('ia_estrategias').innerHTML = `<li>Estrategia Nacional de Lectura.</li><li>Estrategia Nacional de Educación Inclusiva.</li><li>Estrategia con Perspectiva de Género.</li>`;
+    document.getElementById('ia_escenario').innerText = document.getElementById('problema').value.toLowerCase().includes("escuela") ? "Escolar" : "Comunitario";
+}
+
+function revisarEnfasis() {
+    try {
+        const selectDisciplina = document.getElementById('disciplina');
+        const cajaEnfasis = document.getElementById('contenedor_enfasis');
+        if (selectDisciplina && cajaEnfasis) {
+            const textoVisible = selectDisciplina.options[selectDisciplina.selectedIndex].text.toUpperCase();
+            const show = (textoVisible.indexOf('TECNOLOG') !== -1 || textoVisible.indexOf('ARTES') !== -1);
+            cajaEnfasis.style.display = show ? 'block' : 'none';
+        }
+    } catch (e) { console.error("Error en énfasis:", e); }
+}
+
+function renderArticulacion() {
+    const m = document.getElementById('metodo').value;
+    const c = document.getElementById('campo').value;
+    const g = document.getElementById('grado').value;
+    
+    const fases = METODOLOGIAS[m]?.fases || METODOLOGIAS['AS'].fases;
+    const disciplines = getDisciplinasPorGrado(c, g);
+    
+    let html = `<table class="w-full text-xs border bg-white shadow-sm">
+        <thead>
+            <tr class="bg-blue-100 font-bold text-center text-blue-900 uppercase">
+                <td class="p-2 border w-1/6">Fases / Momentos</td>
+                <td class="p-2 border w-1/12">Fechas</td>`;
+                
+    disciplines.forEach(d => {
+        let nombreColumna = d;
+        if (d === "TECNOLOGIA") {
+            const enf = document.getElementById('enfasis_tecnologia')?.value || "ESPECIALIDAD";
+            nombreColumna = `TECNOLOGÍA (${enf})`;
+        }
+        html += `<td class="p-2 border">Aportación:<br><span class="text-blue-700">${nombreColumna}</span></td>`;
+    });
+    
+    html += `</tr></thead><tbody id="cuerpo_tabla_articulacion">`;
+        
+    fases.forEach((fase, idx) => {
+        html += `<tr>
+            <td class="p-2 border font-bold bg-slate-50 text-[10px] text-center uppercase">${fase}</td>
+            <td class="p-2 border"><input type="text" class="w-full p-2 border rounded text-center text-[10px]" placeholder="Ej. Sem ${idx+1}"></td>`;
+        
+        disciplines.forEach(d => {
+            html += `<td class="p-2 border"><textarea class="w-full h-24 text-[10px] border rounded p-1 text-slate-700 leading-tight">${generarActividadEspecifica(d, idx, fases.length)}</textarea></td>`;
+        });
+        
+        html += `</tr>`;
+    });
+    
+    html += `</tbody></table>`;
+    document.getElementById('tabla_articulacion').innerHTML = html;
+}
+
+function generarActividadEspecifica(disc, idx, total) {
+    const proy = document.getElementById('nombre_proy')?.value || "el proyecto";
+    const prod = document.getElementById('producto')?.value || "el producto";
+    
+    const probParr = document.getElementById('problema')?.value || "";
+    const prob = probParr.length > 50 ? "la problemática planteada" : (probParr || "la problemática");
+
+    if (disc === "TECNOLOGIA") {
+        const enf = document.getElementById('enfasis_tecnologia')?.value.toUpperCase() || "";
+        let actTec = "";
+        
+        if (enf.includes("CORTE") || enf.includes("VESTI") || enf.includes("CONFE") || enf.includes("CARPIN") || enf.includes("MADERA") || enf.includes("HERRE") || enf.includes("METAL") || enf.includes("MECANI") || enf.includes("ALIMENTOS") || enf.includes("CONSERV") || enf.includes("ELEC") || enf.includes("GRAFICAS")) {
+            if(idx===0) actTec = `Diagnóstico de materiales y herramientas para abordar: ${prob}.`;
+            else if(idx===Math.floor(total/2)) actTec = `Cálculo de despiece e insumos para la creación de ${prod}.`;
+            else if(idx===total-2 || idx===total-1) actTec = `Transformación técnica de materiales y uso de herramientas para ${prod}.`;
+            else actTec = `Evaluación de la durabilidad y acabado técnico de ${prod} en ${proy}.`;
+        }
+        else if (enf.includes("INFO") || enf.includes("COMPU") || enf.includes("PROGRA") || enf.includes("ROBO") || enf.includes("OFIMA") || enf.includes("DIGITAL")) {
+            if(idx===0) actTec = `Detección de necesidades digitales y de sistema ante: ${prob}.`;
+            else if(idx===Math.floor(total/2)) actTec = `Diseño de algoritmos, flujogramas o bases de datos para ${prod}.`;
+            else if(idx===total-2 || idx===total-1) actTec = `Codificación, configuración o ensamble técnico para activar ${prod}.`;
+            else actTec = `Pruebas de funcionalidad y seguridad del sistema de ${prod} en ${proy}.`;
+        }
+        else if (enf.includes("DISEÑO") || enf.includes("ARQUI") || enf.includes("DIBUJO") || enf.includes("CONST") || enf.includes("TOPO") || enf.includes("INDUSTRIAL")) {
+            if(idx===0) actTec = `Levantamiento técnico y normas de representación gráfica para ${prob}.`;
+            else if(idx===Math.floor(total/2)) actTec = `Elaboración de planos, bocetos a escala y maquetación de ${prod}.`;
+            else if(idx===total-2 || idx===total-1) actTec = `Prototipado físico aplicando sistemas de construcción para ${prod}.`;
+            else actTec = `Verificación estructural y estética de ${prod} en ${proy}.`;
+        }
+        else if (enf.includes("AGRI") || enf.includes("AGRO") || enf.includes("SUSTENT") || enf.includes("ARTESAN") || enf.includes("EMPREN")) {
+            if(idx===0) actTec = `Análisis de ciclos productivos y recursos naturales ante: ${prob}.`;
+            else if(idx===Math.floor(total/2)) actTec = `Planeación de procesos sustentables y técnicas para ${prod}.`;
+            else if(idx===total-2 || idx===total-1) actTec = `Ejecución de procesos de manufactura o cultivo para obtener ${prod}.`;
+            else actTec = `Evaluación del impacto comunitario de ${prod} en ${proy}.`;
+        }
+        else {
+            actTec = `Aplicación de procesos técnicos operativos para desarrollar ${prod} en ${proy}.`;
+        }
+        return actTec;
+    }
+
+    const progreso = idx / (total > 1 ? total - 1 : 1);
+    
+    const banco = {
+        "MATEMATICAS": [
+            `Análisis de datos estadísticos y numéricos para comprender: ${prob}.`,
+            `Planteamiento de relaciones matemáticas vinculadas a ${proy}.`,
+            `Diseño de tablas de frecuencias o modelos para estructurar ${prod}.`,
+            `Procesamiento de información y cálculo de medidas para ${prod}.`,
+            `Graficación de datos y análisis de tendencias del proyecto.`,
+            `Interpretación matemática de los resultados obtenidos en ${proy}.`,
+            `Presentación y exposición del análisis numérico de ${prod}.`
+        ],
+        "ESPAÑOL": [
+            `Lectura exploratoria y análisis de textos referentes a: ${prob}.`,
+            `Búsqueda de fuentes de información confiables para fundamentar ${proy}.`,
+            `Extracción de ideas principales para el desarrollo de ${prod}.`,
+            `Elaboración del primer borrador, ensayo o guion de ${prod}.`,
+            `Revisión de cohesión, coherencia y ortografía del documento.`,
+            `Redacción y revisión de la versión final de ${prod}.`,
+            `Socialización y presentation oral de ${proy}.`
+        ],
+        "INGLES": [
+            `Identificación de vocabulario clave en inglés sobre: ${prob}.`,
+            `Traducción de conceptos básicos para el desarrollo de ${proy}.`,
+            `Lectura de textos cortos en inglés para fundamentar ${prod}.`,
+            `Redacción de frases descriptivas o diálogos en inglés para ${prod}.`,
+            `Revisión de gramática y pronunciación de los textos.`,
+            `Integración del vocabulario bilingüe al documento de ${prod}.`,
+            `Exposición bilingüe o demostración oral de ${proy}.`
+        ],
+        "ARTES": [
+            `Exploración de referentes visuales o sonoros sobre: ${prob}.`,
+            `Bocetaje y diseño estético para la creación de ${prod}.`,
+            `Selección de materiales, colores o ritmos a utilizar en ${proy}.`,
+            `Desarrollo creativo y elaboración técnica de ${prod}.`,
+            `Refinamiento de la presentación visual o escénica de ${prod}.`,
+            `Montaje o preparación del espacio de exposición del proyecto.`,
+            `Presentación artística de ${proy} a la comunidad.`
+        ],
+        "FISICA": [
+            `Identificación de fenómenos físicos implicados en: ${prob}.`,
+            `Planteamiento de hipótesis científicas para guiar ${proy}.`,
+            `Diseño del experimento o modelo físico requerido para ${prod}.`,
+            `Medición de variables (tiempo, distancia, fuerza) en ${prod}.`,
+            `Registro de datos físicos y comprobación de la hipótesis.`,
+            `Análisis físico de los resultados obtenidos en ${proy}.`,
+            `Demostración científica y explicación de ${prod}.`
+        ],
+        "QUIMICA": [
+            `Análisis de propiedades químicas o impactos ambientales en: ${prob}.`,
+            `Investigación sobre reacciones químicas vinculadas a ${proy}.`,
+            `Diseño de la práctica experimental o recolección para ${prod}.`,
+            `Desarrollo del experimento para lograr la creación de ${prod}.`,
+            `Análisis de resultados químicos y contrastación teórica.`,
+            `Elaboración de conclusiones sobre viabilidad y salud en ${proy}.`,
+            `Exposición científica de los hallazgos en ${prod}.`
+        ],
+        "BIOLOGIA": [
+            `Observación del ecosistema y factores de salud ante: ${prob}.`,
+            `Investigación de procesos biológicos para fundamentar ${proy}.`,
+            `Recopilación de datos de campo para el desarrollo de ${prod}.`,
+            `Diseño de estrategias sustentables aplicadas en ${prod}.`,
+            `Evaluación del impacto biológico o en salud de ${proy}.`,
+            `Desarrollo de conclusiones biológicas a través de ${prod}.`,
+            `Socialización de medidas preventivas generadas en ${proy}.`
+        ],
+        "HISTORIA": [
+            `Búsqueda de antecedentes históricos relacionados con: ${prob}.`,
+            `Análisis de fuentes primarias para documentar ${proy}.`,
+            `Elaboración de líneas de tiempo integradas al diseño de ${prod}.`,
+            `Contextualización histórica de los elementos utilizados en ${prod}.`,
+            `Reflexión sobre los cambios y permanencias en la sociedad.`,
+            `Redacción de conclusiones con perspectiva histórica para ${proy}.`,
+            `Presentación narrativa de la evolución de la problemática mediante ${prod}.`
+        ],
+        "GEOGRAFIA": [
+            `Localización espacial y territorial de: ${prob}.`,
+            `Análisis de las características del entorno físico y social para ${proy}.`,
+            `Elaboración de croquis o mapas integrados a ${prod}.`,
+            `Identificación del impacto socioambiental de ${prod}.`,
+            `Diseño de propuestas sustentables orientadas a ${proy}.`,
+            `Interpretación geográfica de la relación sociedad-naturaleza.`,
+            `Exposición del espacio intervenido a través de ${prod}.`
+        ],
+        "F.C.E": [
+            `Identificación de dilemas éticos y derechos humanos en: ${prob}.`,
+            `Análisis de normas y valores para la convivencia en ${proy}.`,
+            `Debate sobre implicaciones sociales para fundamentar ${prod}.`,
+            `Diseño de estrategias de inclusión y resolución pacífica en ${prod}.`,
+            `Aplicación de encuestas o entrevistas a la comunidad escolar.`,
+            `Evaluación del impacto cívico y ético de ${proy}.`,
+            `Presentación de propuestas de mejora ciudadana mediante ${prod}.`
+        ],
+        "ED. FISICA": [
+            `Diagnóstico de las capacidades motrices requeridas ante: ${prob}.`,
+            `Investigación sobre los beneficios físicos vinculados a ${proy}.`,
+            `Diseño de dinámicas corporales o juegos para integrar a ${prod}.`,
+            `Ejecución de actividades motrices en equipo para el logro de ${prod}.`,
+            `Monitoreo del desempeño físico y convivencia durante ${proy}.`,
+            `Evaluación de habilidades y trabajo colaborativo.`,
+            `Demostración motriz y reflexión sobre la salud con ${prod}.`
+        ],
+        "SOCIOEMOCIONAL": [
+            `Identificación de emociones generadas en el entorno por: ${prob}.`,
+            `Establecimiento de acuerdos grupales de convivencia para ${proy}.`,
+            `Desarrollo de dinámicas de empatía y comunicación asertiva.`,
+            `Acompañamiento en la resolución de conflictos para crear ${prod}.`,
+            `Análisis del impacto emocional del proyecto en la comunidad.`,
+            `Evaluación de la colaboración y manejo de la frustración.`,
+            `Reflexión sobre el crecimiento personal al concluir ${prod} en ${proy}.`
+        ]
+    };
+
+    const generico = [
+        `Acercamiento inicial a la problemática: ${prob}.`,
+        `Búsqueda de referentes e información clave para ${proy}.`,
+        `Análisis de los datos y planteamiento de soluciones para ${prod}.`,
+        `Desarrollo de las actividades prácticas de investigación.`,
+        `Sistematización de la información recabada en ${proy}.`,
+        `Evaluación de los primeros resultados obtenidos de ${prod}.`,
+        `Socialización y reflexión sobre el aprendizaje.`
+    ];
+
+    const lista = banco[disc] || generico;
+    let textIdx = Math.floor(progreso * lista.length);
+    if(textIdx >= lista.length) textIdx = lista.length - 1;
+    
+    return lista[textIdx];
+}
+
+function renderContenidos() {
+    const d = document.getElementById('disciplina').value;
+    const g = document.getElementById('grado').value;
+    const container = document.getElementById('catalogo_contenidos');
+    container.innerHTML = "";
+    
+    const matches = DB_FULL.filter(i => i.d === d && i.g === g);
+    
+    if(matches.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center font-bold text-slate-500 bg-slate-50 border rounded">⚠️ No hay contenidos extraídos para esta disciplina. Asegúrese de haber subido el archivo Word en el Paso 1.</div>`;
+        return;
+    }
+    
+    container.innerHTML += `<div class="bg-blue-100 border-l-4 border-blue-600 p-2 mb-3 text-xs font-bold text-blue-800 uppercase">📌 Instrucción: Seleccione la casilla y asigne "C" (Contenido) o "P" (Proyecto) en el menú de la derecha.</div>`;
+    
+    matches.forEach((item, idx) => {
+        container.innerHTML += `
+            <div class="p-3 border rounded bg-white flex items-center gap-3 shadow-sm mb-2 hover:bg-slate-50 transition cont-item">
+                <input type="checkbox" id="c_${idx}" class="w-5 h-5 content-check" value="${item.c}||${item.pda}">
+                <label for="c_${idx}" class="cursor-pointer w-full text-xs">
+                    <strong class="text-blue-900">${item.c}</strong><br>
+                    <span class="text-slate-600">${item.pda}</span>
+                </label>
+                <select class="p-1 border border-blue-400 rounded text-xs font-bold bg-blue-50 text-blue-900 cursor-pointer shadow-sm cp-select">
+                    <option value="P">P (Proyecto)</option>
+                    <option value="C">C (Contenido)</option>
+                </select>
+            </div>`;
+    });
+}
+
+function prepararPaso5() {
+    const metodo = document.getElementById('metodo').value;
+    const disc = document.getElementById('disciplina').value;
+    const campo = document.getElementById('campo').value || "Campo Formativo";
+    const grado = document.getElementById('grado').value || "1";
+    let enf = document.getElementById('enfasis_tecnologia')?.value || "";
+    const problema = document.getElementById('problema').value || "la problemática del contexto";
+    const prodFinalNom = document.getElementById('producto').value || "Producto Final";
+    const proy = document.getElementById('nombre_proy').value || "el proyecto integrador";
+
+    let selectedItems = [];
+    document.querySelectorAll('.content-check:checked').forEach(c => {
+        let p = c.value.split('||');
+        let tipoCP = c.closest('.cont-item').querySelector('.cp-select').value;
+        selectedItems.push({ tipo: tipoCP, contenido: p[0], pda: p[1] });
+    });
+
+    let enfasisHtml = "";
+    if (disc === "ARTES" || disc === "TECNOLOGIA") {
+        enfasisHtml = `<div class="flex items-center gap-2 bg-blue-800 px-3 py-1 rounded-full shadow-inner border border-blue-700 ml-2">
+            <span class="text-orange-300">⚙️ ÉNFASIS SELECCIONADO:</span>
+            <span class="text-white font-bold text-[10px] uppercase">${enf}</span>
+        </div>`;
+    }
+
+    let contextHtml = `<div class="bg-blue-900 text-white p-3 rounded mb-4 text-xs font-black uppercase flex flex-wrap gap-4 shadow-md justify-center items-center tracking-wide border-b-4 border-orange-500">
+        <span>📚 CAMPO: ${campo}</span>
+        <span>🎓 GRADO: ${grado}°</span>
+        <span class="flex items-center">📖 DISCIPLINA: ${disc}</span>
+        ${enfasisHtml}
+    </div>`;
+    
+    let infoProyectoHtml = `
+    <div class="bg-blue-800 text-white p-4 rounded mb-6 shadow-md flex flex-col md:flex-row justify-between border-l-8 border-orange-500">
+        <div class="w-full md:w-1/2 mb-2 md:mb-0 md:pr-4 md:border-r border-blue-600">
+            <span class="text-[10px] font-bold text-orange-300 uppercase tracking-wider block mb-1">Nombre del Proyecto:</span>
+            <span class="text-sm font-black uppercase">${proy}</span>
+        </div>
+        <div class="w-full md:w-1/2 md:pl-4">
+            <span class="text-[10px] font-bold text-orange-300 uppercase tracking-wider block mb-1">Producto Final a Desarrollar:</span>
+            <span class="text-sm font-black uppercase">${prodFinalNom}</span>
+        </div>
+    </div>`;
+
+    let pdasHtml = `<div class="bg-blue-50 border border-blue-200 p-4 rounded mb-6 shadow-sm">
+        <h3 class="font-bold text-blue-900 mb-2 text-sm uppercase">📌 CONTENIDOS Y PDA SELECCIONADOS:</h3>
+        <ul class="list-none space-y-3">`;
+    if (selectedItems.length === 0) {
+        pdasHtml += `<li class="text-red-600 font-bold">⚠️ No hay contenidos seleccionados. Por favor regrese al Paso 4.</li>`;
+    } else {
+        selectedItems.forEach(item => {
+            let etiqueta = item.tipo === 'P' ? '<span class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold mr-2">PROYECTO</span>' : '<span class="bg-orange-500 text-white px-3 py-1 rounded text-[10px] font-bold mr-2">CONTENIDO</span>';
+            pdasHtml += `<li class="text-xs text-slate-700 border-l-4 border-blue-200 pl-3">${etiqueta} <strong>Contenido:</strong> ${item.contenido} <br> <em class="text-blue-800">PDA: ${item.pda}</em></li>`;
+        });
+    }
+    pdasHtml += `</ul></div>`;
+
+    let nomActividades = "";
+    if (metodo === "ABPC") {
+        nomActividades = `<div class="grid grid-cols-2 gap-x-1 gap-y-1 text-[10px]">
+            <div><strong>C</strong> - Contenido</div><div><strong>EV</strong> - Eval. Diagnóstica/Sumativa</div>
+            <div class="col-span-2 mt-1 border-t pt-1"></div>
+            <div><strong>M1</strong> - Momento 1</div><div><strong>M2</strong> - Momento 2</div>
+            <div><strong>M3</strong> - Momento 3</div><div><strong>M4</strong> - Momento 4</div>
+            <div><strong>M5</strong> - Momento 5</div><div><strong>M6</strong> - Momento 6</div>
+            <div><strong>M7</strong> - Momento 7</div><div><strong>M8</strong> - Momento 8</div>
+            <div><strong>M9</strong> - Momento 9</div><div><strong>M10</strong> - Momento 10</div>
+            <div><strong>M11</strong> - Momento 11</div>
+        </div>`;
+    } else if (metodo === "STEAM") {
+        nomActividades = `<div class="grid grid-cols-2 gap-x-1 gap-y-1 text-[10px]">
+            <div><strong>C</strong> - Contenido</div><div><strong>EV</strong> - Evaluación</div>
+            <div class="col-span-2 mt-1 border-t pt-1"></div>
+            <div><strong>F1</strong> - Fase 1</div><div><strong>F2</strong> - Fase 2</div>
+            <div><strong>F3</strong> - Fase 3</div><div><strong>F4</strong> - Fase 4</div>
+            <div><strong>F5</strong> - Fase 5</div><div></div>
+        </div>`;
+    } else if (metodo === "ABP") {
+        nomActividades = `<div class="grid grid-cols-1 gap-y-1 text-[10px]">
+            <div class="grid grid-cols-2 gap-x-1"><div><strong>C</strong> - Contenido</div><div><strong>EV</strong> - Evaluación</div></div>
+            <div class="mt-1 border-t pt-1"></div>
+            <div><strong>M1</strong> - Momento 1 Presentemos</div>
+            <div><strong>M2</strong> - Momento 2 Recolectemos</div>
+            <div><strong>M3</strong> - Momento 3 Formulemos el problema</div>
+            <div><strong>M4</strong> - Momento 4 Organicemos la experiencia</div>
+            <div><strong>M5</strong> - Momento 5 Vivamos la experiencia</div>
+            <div><strong>M6</strong> - Momento 6 Resultados y análisis</div>
+        </div>`;
+    } else if (metodo === "AS") {
+        nomActividades = `<div class="grid grid-cols-2 gap-x-1 gap-y-1 text-[10px]">
+            <div><strong>C</strong> - Contenido</div><div><strong>EV</strong> - Evaluación</div>
+            <div class="col-span-2 mt-1 border-t pt-1"></div>
+            <div><strong>E1</strong> - Etapa 1</div><div><strong>E2</strong> - Etapa 2</div>
+            <div><strong>E3</strong> - Etapa 3</div><div><strong>E4</strong> - Etapa 4</div>
+            <div><strong>E5</strong> - Etapa 5</div><div></div>
+        </div>`;
+    }
+
+    let tablaNomenclatura = `
+    <div class="bg-white border-2 border-slate-300 p-4 rounded mb-6 shadow-md">
+        <h3 class="font-black text-slate-800 mb-3 text-sm uppercase border-b-4 border-orange-500 pb-1 inline-block">
+            📋 NOMENCLATURAS DEL PROCESO (${metodo})
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <div class="bg-slate-50 border border-slate-200 p-3 rounded text-slate-800">
+                <strong class="text-blue-900 block mb-2 uppercase text-[12px] border-b pb-1">Tipo de Actividades</strong>
+                ${nomActividades}
+            </div>
+            <div class="bg-slate-50 border border-slate-200 p-3 rounded text-slate-800">
+                <strong class="text-blue-900 block mb-2 uppercase text-[12px] border-b pb-1">Proceso para la Evaluación Formativa</strong>
+                <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+                    <div><strong>MO</strong> - Motivar y Orientar</div>
+                    <div><strong>ES</strong> - Establecer/Socializar</div>
+                    <div><strong>E</strong> - Explorar</div>
+                    <div><strong>M</strong> - Monitoreo</div>
+                    <div><strong>C</strong> - Control</div>
+                    <div><strong>RL</strong> - Resaltar Logros</div>
+                    <div><strong>PA</strong> - Promover Autoeval.</div>
+                    <div><strong>PC</strong> - Promover Coeval.</div>
+                    <div class="col-span-2 mt-1 pt-1 border-t border-slate-200"><strong>R</strong> - Retroalimentación</div>
+               </div>
+        </div>
+    </div>`;
+
+    document.getElementById('info_previa_s5').innerHTML = contextHtml + infoProyectoHtml + pdasHtml + tablaNomenclatura;
+}
+
+// NUEVA FUNCIÓN ASÍNCRONA PARA NETLIFY
+async function generarSesionesIA() {
+    const num = document.getElementById('num_sesiones').value;
+    const container = document.getElementById('contenedor_sesiones');
+    const metodo = document.getElementById('metodo').value;
+    const disc = document.getElementById('disciplina').value;
+    const campo = document.getElementById('campo').value || "Campo Formativo";
+    const grado = document.getElementById('grado').value || "1";
+    
+    let enf = document.getElementById('enfasis_tecnologia')?.value || "";
+    if ((disc === 'ARTES' || disc === 'TECNOLOGIA') && enf.trim() === '') {
+        container.innerHTML = `
+        <div class="p-6 text-center font-bold text-red-700 bg-red-100 border-2 border-red-400 rounded-lg shadow-md mb-4 animate-pulse">
+            ⛔ ¡ALTO! REQUISITO FALTANTE <br>
+            <span class="text-sm text-red-900 font-normal">Para generar secuencias de <strong>${disc}</strong>, es obligatorio definir el <strong>ÉNFASIS</strong> en el Paso 1.</span>
+            <br>
+            <button onclick="go(1); document.getElementById('enfasis_tecnologia').focus();" class="mt-2 bg-red-600 text-white px-4 py-1 rounded text-xs hover:bg-red-800">IR A PASO 1 Y CORREGIR</button>
+        </div>`;
+        return; 
+    }
+
+    const problema = document.getElementById('problema').value || "la problemática del contexto";
+    const prodFinalNom = document.getElementById('producto').value || "Producto Final";
+    const proy = document.getElementById('nombre_proy').value || "el proyecto integrador";
+
+    let selectedItems = [];
+    document.querySelectorAll('.content-check:checked').forEach(c => {
+        let p = c.value.split('||');
+        let tipoCP = c.closest('.cont-item').querySelector('.cp-select').value;
+        selectedItems.push({ tipo: tipoCP, contenido: p[0], pda: p[1] });
+    });
+
+    if (selectedItems.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center font-bold text-red-600 bg-red-50 border rounded mb-4 shadow-sm">⚠️ ERROR: Seleccione PDAs en el Paso 4.</div>`;
+        return;
+    }
+
+    const btnGenerar = document.querySelector('button[onclick="generarSesionesIA()"]');
+    const textoOriginalBtn = btnGenerar.innerHTML;
+    btnGenerar.innerHTML = "⏳ CONECTANDO CON IA... ESPERE";
+    btnGenerar.disabled = true;
+    btnGenerar.classList.replace('bg-green-600', 'bg-slate-500');
+
+    container.innerHTML = `<div class="p-8 text-center text-blue-800 font-bold bg-blue-50 border border-blue-200 rounded animate-pulse">
+        🧠 La Inteligencia Artificial está estructurando las ${num} sesiones reales. Evaluando PDAs de ${disc} y diseñando entregables...
+    </div>`;
+
+    const promptIA = `
+    Actúa como un experto en diseño curricular de la Nueva Escuela Mexicana. 
+    Desarrolla el proceso didáctico exacto de ${num} sesiones para:
+    - Campo Formativo: ${campo}
+    - Grado: ${grado}° de secundaria
+    - Disciplina: ${disc} (Énfasis: ${enf})
+    - Proyecto: ${proy}
+    - Problema a resolver: ${problema}
+    - Producto final del proyecto: ${prodFinalNom}
+    - Metodología: ${metodo}
+    - Contenidos y PDAs a desarrollar: ${JSON.stringify(selectedItems)}
+
+    REGLAS ESTRICTAS PARA LA GENERACIÓN:
+    1. Las sesiones NO se pueden repetir. Cada sesión debe tener actividades reales y progresivas.
+    2. Las actividades deben corresponder a la disciplina, grado y al desarrollo físico/teórico del producto del proyecto.
+    3. Para cada sesión, asigna las nomenclaturas correctas del proceso de evaluación formativa, materiales necesarios y forma de trabajo.
+    4. Diseña 4 entregables parciales reales más el producto del proyecto final.
+    
+    Devuelve ÚNICAMENTE un JSON válido con la siguiente estructura exacta, sin texto adicional:
+    [
+      {
+        "sesion": 1,
+        "tipo_etiqueta": "[CONTENIDO] DOMINIO DISCIPLINAR",
+        "actividades": "INICIO (10 min)\\n[DOCENTE]...\\n[ALUMNADO]...\\n\\nDESARROLLO (30 min)\\n[DOCENTE]...\\n[ALUMNADO]...\\n\\nCIERRE (10 min)\\n[DOCENTE]...\\n[ALUMNADO]...",
+        "tipo_actividad": "Ej. C o M1",
+        "forma_trabajo": "Ej. TRABAJO EN BINAS",
+        "materiales": "Ej. Formato impreso",
+        "proceso_eval_form": "Ej. E, M",
+        "producto_entregable": "Ej. 📦 ENTREGABLE PARCIAL 1: Boceto"
+      }
+    ]
+    `;
+
+    try {
+        const response = await fetch('/.netlify/functions/generarDidactica', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: promptIA })
+        });
+
+        if (!response.ok) throw new Error("Error en la conexión con la IA de Netlify.");
+        
+        const data = await response.json();
+        const sesionesGeneradas = JSON.parse(data.respuestaJSON);
+
+        container.innerHTML = ""; 
+        sesionesGeneradas.forEach((ses, index) => {
+            let isProject = ses.tipo_etiqueta.includes("PROYECTO");
+            
+            container.innerHTML += `
+            <div class="p-4 rounded shadow-sm ${isProject ? 'ses-proy' : 'ses-cont'} bg-white mb-4 session-row border-2 border-slate-200">
+                <div class="flex justify-between font-bold text-xs mb-3 text-slate-800">
+                    <span>SESIÓN ${ses.sesion}</span>
+                    <span class="uppercase font-black ${isProject ? 'text-blue-900' : 'text-orange-700'}">${ses.tipo_etiqueta}</span>
+                </div>
+                <textarea spellcheck="false" class="w-full text-[11px] p-3 border rounded h-[270px] s-desc font-mono bg-slate-50 leading-relaxed text-slate-900">${ses.actividades}</textarea>
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-3">
+                    <div class="col-span-1"><span class="label-sec text-[9px] font-bold text-blue-800">TIPO ACTIVIDAD:</span><input type="text" class="w-full text-[10px] p-2 border rounded bg-blue-50 text-blue-900 font-black text-center" value="${ses.tipo_actividad}"></div>
+                    <div class="col-span-1"><span class="label-sec text-[9px] font-bold text-blue-800">FORMA TRABAJO:</span><input type="text" class="w-full text-[10px] p-2 border rounded bg-white text-center" value="${ses.forma_trabajo}"></div>
+                    <div class="col-span-2 lg:col-span-1"><span class="label-sec text-[9px] font-bold text-blue-800">MATERIALES:</span><input type="text" class="w-full text-[10px] p-2 border rounded s-mat bg-white" value="${ses.materiales}"></div>
+                    <div class="col-span-2 lg:col-span-1"><span class="label-sec text-[9px] font-bold text-blue-800">PROCESO EVAL. FORM.:</span><input type="text" class="w-full text-[10px] p-2 border rounded s-eval bg-white" value="${ses.proceso_eval_form}"></div>
+                    <div class="col-span-2 lg:col-span-1"><span class="label-sec text-[9px] font-bold text-green-800">PRODUCTO ENTREGABLE:</span><input type="text" class="w-full text-[10px] font-black p-2 border rounded s-prod bg-green-50 text-green-900" value="${ses.producto_entregable}"></div>
+                </div>
+            </div>`;
+        });
+
+    } catch (error) {
+        console.error("Error al generar con IA:", error);
+        container.innerHTML = `<div class="p-4 font-bold text-red-700 bg-red-100 border border-red-400 rounded">
+            ⚠️ Hubo un problema al contactar a la Inteligencia Artificial. Verifica tu conexión o los logs de Netlify.
+        </div>`;
+    } finally {
+        btnGenerar.innerHTML = textoOriginalBtn;
+        btnGenerar.disabled = false;
+        btnGenerar.classList.replace('bg-slate-500', 'bg-green-600');
+    }
+}
+
+function renderEvaluacion() {
+    const prodFinal = document.getElementById('producto').value || "Producto Final";
+    const disc = document.getElementById('disciplina').value;
+    
+    let entregables = [];
+    document.querySelectorAll('.s-prod').forEach(input => { 
+        if(input.value.includes("ENTREGABLE")) {
+            entregables.push(input.value.replace("📦 ", ""));
+        }
+    });
+
+    if(entregables.length < 4) {
+        entregables = ["Entregable 1: Diagnóstico", "Entregable 2: Diseño", "Entregable 3: Desarrollo", "Entregable 4: Prototipo"];
+    }
+
+    document.getElementById('instrumentos_generados').innerHTML = `
+        <div class="mb-8">
+            <h3 class="text-md font-black text-blue-900 mb-2 border-b-2 border-blue-800 pb-1 uppercase">EVALUACIÓN (Matriz de Entregables)</h3>
+            <table class="table-word" style="background:white;">
+                <tr class="bg-blue-800 text-white"><th>Periodo</th><th>Evidencia Tangible (Producto)</th><th>Instrumento Sugerido</th><th>Peso</th></tr>
+                <tr><td class="text-center font-bold bg-slate-50">Desarrollo</td><td>${entregables[0]}</td><td>Lista de Cotejo</td><td class="text-center">10%</td></tr>
+                <tr><td class="text-center font-bold bg-slate-50">Desarrollo</td><td>${entregables[1]}</td><td>Guía de Observación</td><td class="text-center">15%</td></tr>
+                <tr><td class="text-center font-bold bg-slate-50">Desarrollo</td><td>${entregables[2]}</td><td>Escala Estimativa</td><td class="text-center">15%</td></tr>
+                <tr><td class="text-center font-bold bg-slate-50">Cierre</td><td>${entregables[3]}</td><td>Rúbrica de Proceso</td><td class="text-center">20%</td></tr>
+                <tr class="font-bold bg-blue-100 text-blue-900"><td class="text-center uppercase text-[10px]">Final</td><td>✨ ${prodFinal.toUpperCase()}</td><td>Rúbrica Analítica (${disc})</td><td class="text-center">40%</td></tr>
+            </table>
+        </div>
+        
+        <div>
+            <h3 class="text-md font-black text-blue-900 mb-4 border-b-2 border-blue-800 pb-1 uppercase">7. DESARROLLO DE INSTRUMENTOS DE EVALUACIÓN FORMATIVA</h3>
+            
+            <h4 class="font-bold text-blue-800 mt-4 text-sm uppercase">1. Lista de Cotejo para: ${entregables[0]}</h4>
+            <table class="table-word mb-6" style="background:white;">
+                <tr class="bg-slate-200 text-slate-700"><th width="30%">Criterio a Evaluar</th><th width="35%">Indicador (SI Cumple)</th><th width="35%">Indicador (NO Cumple)</th></tr>
+                <tr><td class="font-bold">1. Identificación de Información</td><td>Identifica y registra los datos o variables solicitadas sin omisiones.</td><td>Omite información clave o variables principales de la etapa inicial.</td></tr>
+                <tr><td class="font-bold">2. Estructura y Organización</td><td>Presenta el entregable con orden lógico, secuencia clara y limpieza.</td><td>El entregable se presenta desordenado, confuso o sucio.</td></tr>
+                <tr><td class="font-bold">3. Seguimiento de Instrucciones</td><td>Atiende a todos los requerimientos técnicos y de formato exigidos.</td><td>Ignora las pautas de formato o los procedimientos indicados por el docente.</td></tr>
+                <tr><td class="font-bold">4. Ortografía y Redacción</td><td>Utiliza correctamente las reglas ortográficas y gramaticales básicas.</td><td>Presenta múltiples errores de ortografía que dificultan la lectura.</td></tr>
+                <tr><td class="font-bold">5. Puntualidad en la Entrega</td><td>Entrega el producto parcial en la fecha y hora acordada.</td><td>Entrega con retraso injustificado o no entrega en la sesión.</td></tr>
+            </table>
+
+            <h4 class="font-bold text-blue-800 mt-4 text-sm uppercase">2. Guía de Observación para: ${entregables[1]}</h4>
+            <table class="table-word mb-6" style="background:white;">
+                <tr class="bg-slate-200 text-slate-700"><th width="25%">Criterio a Evaluar</th><th width="25%">Siempre (3)</th><th width="25%">A veces (2)</th><th width="25%">Nunca (1)</th></tr>
+                <tr><td class="font-bold">1. Ejecución Técnica</td><td>Ejecuta los procedimientos demostrando dominio de las herramientas y la técnica.</td><td>Logra el objetivo pero duda o comete errores procedimentales menores.</td><td>Desconoce la técnica o requiere intervención total del docente.</td></tr>
+                <tr><td class="font-bold">2. Aplicación de Seguridad</td><td>Maneja recursos con cuidado y respeta estrictamente el reglamento del aula/taller.</td><td>Descuida el material ocasionalmente pero corrige su actitud al indicárselo.</td><td>Pone en riesgo el material, equipo, área de trabajo o a sus compañeros.</td></tr>
+                <tr><td class="font-bold">3. Trabajo Colaborativo</td><td>Participa activamente, asume su rol, delega funciones y escucha a su equipo.</td><td>Participa de forma intermitente o intenta imponer ideas sin escuchar a los demás.</td><td>Se aísla del equipo de trabajo, genera conflictos o evade responsabilidades.</td></tr>
+                <tr><td class="font-bold">4. Manejo del Tiempo</td><td>Aprovecha la sesión al máximo, manteniéndose enfocado en el objetivo del día.</td><td>Se distrae ocasionalmente pero logra recuperar el ritmo de trabajo.</td><td>Pierde el tiempo de la sesión en actividades no relacionadas al proyecto.</td></tr>
+                <tr><td class="font-bold">5. Disposición y Actitud</td><td>Muestra interés, iniciativa para aprender y respeta las opiniones de sus pares.</td><td>Muestra apatía en algunos momentos pero cumple con lo mínimo requerido.</td><td>Muestra una actitud negativa, disruptiva o falta al respeto al grupo.</td></tr>
+            </table>
+
+            <h4 class="font-bold text-blue-800 mt-4 text-sm uppercase">3. Escala Estimativa para: ${entregables[2]}</h4>
+            <table class="table-word mb-6" style="background:white;">
+                <tr class="bg-slate-200 text-slate-700"><th width="25%">Criterio a Evaluar</th><th width="25%">Excelente</th><th width="25%">Bueno</th><th width="25%">Deficiente</th></tr>
+                <tr><td class="font-bold">1. Fundamentación Teórica</td><td>Relaciona de manera evidente, precisa y argumentada el PDA con su avance.</td><td>Menciona la teoría disciplinar pero con poca profundidad de análisis o conexión.</td><td>No logra justificar el avance de su producto con los conceptos abordados en clase.</td></tr>
+                <tr><td class="font-bold">2. Nivel de Complejidad</td><td>El avance muestra un grado de dificultad, rigor y reto acorde al grado escolar.</td><td>El avance es funcional pero resulta demasiado básico, simple o carente de reto.</td><td>El avance es precario, superficial y no cumple con los requisitos mínimos del nivel.</td></tr>
+                <tr><td class="font-bold">3. Creatividad e Innovación</td><td>Propone elementos originales, diseño creativo o enfoques novedosos al problema.</td><td>El diseño es adecuado y cumple la norma, pero es repetitivo o poco original.</td><td>El trabajo es una copia exacta de un ejemplo o carece totalmente de creatividad.</td></tr>
+                <tr><td class="font-bold">4. Pensamiento Crítico</td><td>Analiza la información, descarta datos irrelevantes y cuestiona sus propios métodos.</td><td>Acepta la información tal cual se le presenta, con poco análisis sobre su veracidad.</td><td>No muestra capacidad de análisis; incluye información falsa o irrelevante.</td></tr>
+                <tr><td class="font-bold">5. Autonomía de Trabajo</td><td>Busca soluciones por sí mismo antes de pedir ayuda; investiga de forma independiente.</td><td>Intenta resolver por sí mismo pero requiere confirmación constante del docente.</td><td>Depende totalmente del docente para dar el siguiente paso; no investiga por su cuenta.</td></tr>
+            </table>
+
+            <h4 class="font-bold text-blue-800 mt-4 text-sm uppercase">4. Rúbrica de Proceso para: ${entregables[3]}</h4>
+            <table class="table-word mb-6" style="background:white;">
+                <tr class="bg-slate-200 text-slate-700"><th width="25%">Criterio a Evaluar</th><th width="37.5%">Nivel Esperado (Logrado)</th><th width="37.5%">En Desarrollo (Requiere Mejora)</th></tr>
+                <tr><td class="font-bold">1. Funcionalidad Estructural</td><td>El producto/borrador cumple al 100% el propósito para el que fue diseñado sin fallar.</td><td>Funciona de manera intermitente o presenta fallas estructurales que limitan su uso.</td></tr>
+                <tr><td class="font-bold">2. Calidad de Insumos/Materiales</td><td>Utiliza los recursos de manera óptima, evitando el desperdicio y eligiendo los adecuados.</td><td>Desperdicia material o elige elementos que no soportan la función del producto.</td></tr>
+                <tr><td class="font-bold">3. Precisión en Tolerancias/Medidas</td><td>Respeta estrictamente las medidas, cálculos, formatos o proporciones del plano/guion.</td><td>Existen variaciones en las medidas, cálculos u ortografía que alteran el resultado.</td></tr>
+                <tr><td class="font-bold">4. Atención a Retroalimentación</td><td>Corrigió todas las observaciones o errores señalados por el docente en fases previas.</td><td>Ignoró las correcciones sugeridas anteriormente y mantiene los mismos errores.</td></tr>
+                <tr><td class="font-bold">5. Viabilidad para el Cierre</td><td>Está completamente listo, pulido y ensamblado para presentarse en la demostración final.</td><td>Requiere reparaciones, ensambles de última hora o correcciones considerables urgentes.</td></tr>
+            </table>
+
+            <h4 class="font-bold text-blue-800 mt-4 text-sm uppercase">5. Rúbrica Analítica de Producto Final: ✨ ${prodFinal.toUpperCase()}</h4>
+            <table class="table-word" style="background:white;">
+                <tr class="bg-blue-800 text-white"><th width="20%">Criterio Integrador</th><th width="26%">Excelente (3)</th><th width="26%">Suficiente (2)</th><th width="26%">Apoyo (1)</th></tr>
+                ${obtenerRubricaPorNaturaleza(disc)}
+                <tr><td class="font-bold text-slate-700 bg-slate-100">2. Resolución de la Problemática</td><td>El producto final es highly effective; ataca y resuelve la problemática comunitaria/escolar de raíz.</td><td>El producto cumple, pero la solución al problema es muy superficial, temporal o inestable.</td><td>El producto final ignora la problemática planteada; no ofrece ninguna solución real o tangible.</td></tr>
+                <tr><td class="font-bold text-slate-700 bg-slate-100">3. Argumentación y Defensa Técnica</td><td>Defiende su trabajo con gran seguridad, usando lenguaje técnico de la materia y argumentos sólidos.</td><td>Explica su proyecto pero utilizando vocabulario coloquial, dudando en conceptos o leyendo todo.</td><td>No logra explicar verbalmente cómo hicieron el proyecto, qué aprendieron ni defender sus decisiones.</td></tr>
+                <tr><td class="font-bold text-slate-700 bg-slate-100">4. Impacto Comunitario y Reflexión</td><td>Demuestra profunda conciencia de cómo su proyecto transforma su entorno y beneficia a otros.</td><td>Reconoce que el proyecto es útil, pero le cuesta conectarlo con la realidad de su vida diaria.</td><td>Considera el proyecto únicamente como un requisito escolar sin utilidad real fuera del aula.</td></tr>
+                <tr><td class="font-bold text-slate-700 bg-slate-100">5. Integración de Valores / Ejes</td><td>El proyecto evidencia inclusión, equidad, interculturalidad o cuidado ambiental en su desarrollo.</td><td>El proyecto cumple el aspecto técnico, pero no refleja un impacto en valores o ejes articuladores.</td><td>El proyecto contiene elementos excluyentes, falta de empatía o refleja desinterés social.</td></tr>
+            </table>
+        </div>`;
+}
+
+function obtenerRubricaPorNaturaleza(disc) {
+    const rubricas = {
+        "MATEMATICAS": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Precisión Técnica y Cálculo Analítico</td><td>Aplica fórmulas matemáticas, gráficas o algoritmos con total exactitud, sin errores de cálculo en su proyecto.</td><td>Realiza cálculos con errores menores que no afectan gravemente el producto final o la comprensión gráfica.</td><td>Presenta errores graves de medición, estadística o cálculo que arruinan la funcionalidad de la propuesta.</td></tr>`,
+        "ESPAÑOL": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Cohesión, Sintaxis y Persuasión</td><td>Desarrolla un mensaje creativo, con excelente cohesión textual, ortografía impecable y altamente persuasivo.</td><td>El mensaje tiene estructura básica y comprensible, con escasos errores sintácticos u ortográficos.</td><td>El mensaje es incomprensible, carece de estructura lógica, no persuade y presenta faltas graves.</td></tr>`,
+        "FISICA": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Dominio del Principio Físico</td><td>Explica magistralmente y demuestra con experimentación comprobable las leyes involucradas en el producto.</td><td>Identifica los conceptos físicos básicos, pero su demostración práctica es débil o con fallas menores.</td><td>Confunde por completo los principios de la materia o el prototipo no demuestra la ley física abordada.</td></tr>`,
+        "BIOLOGIA": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Análisis y Procesos Vitales</td><td>Describe procesos biológicos, ecológicos o anatómicos con rigor científico y evidencia práctica clara.</td><td>Identifica conceptos vivos básicos, pero no profundiza en sus causas, prevención o consecuencias ambientales.</td><td>Confunde leyes biológicas o muestra concepciones erróneas y anticientíficas de la naturaleza/salud.</td></tr>`,
+        "QUIMICA": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Formulación y Transformación</td><td>Plantea reacciones, modelos atómicos y normas de manipulación de sustancias con absoluta exactitud y rigor.</td><td>Comprende los cambios químicos a nivel básico pero presenta dudas en las nomenclaturas o balances.</td><td>Comete errores graves de formulación, mezcla o desconoce el proceso de transformación ocurrido.</td></tr>`,
+        "HISTORIA": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Análisis Multicausal y Temporal</td><td>Ubica causas, consecuencias y actores en la línea temporal de forma excelente, crítica y contrastada.</td><td>Relata los hechos históricos de forma secuencial pero carece de un análisis profundo o empatía histórica.</td><td>Presenta anacronismos graves, confunde épocas o relata hechos sin ninguna conexión temporal lógica.</td></tr>`,
+        "GEOGRAFIA": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Interpretación Espacial y Cartográfica</td><td>Interpreta el territorio, recursos y riesgos sociales/naturales con rigor analítico y cartográfico experto.</td><td>Ubica el espacio de estudio correctamente pero no analiza sus dinámicas sociales, económicas o naturales.</td><td>Confunde los elementos geográficos, no sabe leer mapas o no logra ubicar el contexto del proyecto.</td></tr>`,
+        "F.C.E": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Juicio Ético y Legal</td><td>Argumenta sólidamente su postura democrática basándose en derechos humanos, leyes vigentes y valores.</td><td>Emite una opinión válida sobre el tema pero le cuesta fundamentarla en normativas cívicas o derechos.</td><td>Desconoce los valores cívicos, promueve prejuicios o justifica acciones que vulneran derechos de terceros.</td></tr>`,
+        "INGLES": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Fluidez, Estructura y Vocabulario</td><td>Emplea la sintaxis y el vocabulario en inglés de forma fluida, pronunciación clara y coherente al contexto.</td><td>Logra comunicarse en inglés con pausas frecuentes, errores menores de sintaxis o vocabulario limitado.</td><td>Estructura frases incomprensibles, lee todo sin fluidez o se apoya totalmente en su lengua materna.</td></tr>`,
+        "ARTES": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Expresión, Técnica y Estética</td><td>Ejecuta la obra con impecable técnica estética, ritmo, volumen o trazo, transmitiendo clara emoción e intención.</td><td>Cumple con el montaje estético pero se percibe falta de ensayo, rigidez técnica o poca proyección expresiva.</td><td>Carece de limpieza estética, técnica disciplinar básica o no logra transmitir el mensaje artístico propuesto.</td></tr>`,
+        "TECNOLOGIA": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Manufactura y Control Operativo</td><td>Fabrica el componente con precisión absoluta de las medidas, técnicas, seguridad y tolerancias del énfasis.</td><td>Logra fabricar la pieza con funcionamiento básico pero los acabados, uniones o medidas son inexactos.</td><td>La pieza está mal ejecutada, no encaja en el sistema o refleja nulo dominio de las herramientas del taller.</td></tr>`,
+        "ED. FISICA": `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Desempeño y Táctica Motriz</td><td>Ejecuta los movimientos con excelente coordinación, autocontrol, esfuerzo cardiovascular y táctica de juego.</td><td>Participa en las actividades cumpliendo la regla, pero su intensidad física o coordinación motriz es irregular.</td><td>Se niega al esfuerzo físico, rompe las reglas del juego, agrede o carece de control motriz básico.</td></tr>`
+    };
+    return rubricas[disc] || `<tr><td class="font-bold text-slate-700 bg-slate-100">1. Dominio Disciplinar del PDA</td><td>Aplica los conocimientos técnicos de manera excelente, con rigor analítico, para resolver el problema del proyecto.</td><td>Logra un entendimiento parcial de los conceptos teóricos pero su aplicación práctica es dudosa o inestable.</td><td>No existe evidencia de que el alumnado haya dominado ni comprendido los contenidos técnicos de la asignatura.</td></tr>`;
+}
+
+function renderPreview() {
+    document.getElementById('p_docente').innerText = document.getElementById('docente').value;
+    document.getElementById('p_disciplina').innerText = document.getElementById('disciplina').value;
+    document.getElementById('p_grado').innerText = document.getElementById('grado').value;
+    document.getElementById('p_problema').innerText = document.getElementById('problema').value;
+    document.getElementById('p_proyecto').innerText = document.getElementById('nombre_proy').value;
+    document.getElementById('p_producto').innerText = document.getElementById('producto').value;
+    document.getElementById('p_metodo').innerText = document.getElementById('metodo').options[document.getElementById('metodo').selectedIndex].text;
+    document.getElementById('p_perfil').innerHTML = document.getElementById('ia_perfil').innerHTML;
+    document.getElementById('p_ejes').innerHTML = document.getElementById('ia_ejes').innerHTML;
+    document.getElementById('p_estrategias').innerHTML = document.getElementById('ia_estrategias').innerHTML;
+
+    let articRows = "";
+    document.querySelectorAll('#tabla_articulacion tr').forEach((tr, i) => {
+        if(i===0) return; 
+        let tds = tr.querySelectorAll('td');
+        if(tds.length >= 3) { 
+            let aportaciones = "";
+            for(let j=2; j<tds.length; j++) {
+                let text = tds[j].querySelector('textarea') ? tds[j].querySelector('textarea').value : tds[j].innerText;
+                if(text.trim() !== "") {
+                    aportaciones += text + "<br>"; 
+                }
+            }
+            articRows += `<tr><td>${tds[0].innerText}</td><td>${tds[1].querySelector('input').value}</td><td>${aportaciones}</td></tr>`; 
+        }
+    });
+    document.getElementById('p_tabla_artic').innerHTML = `<table class="table-word"><thead><tr><th width="20%">Momento/Fase</th><th width="15%">Fechas</th><th width="65%">Aportaciones (Por Disciplina)</th></tr></thead><tbody>${articRows}</tbody></table>`;
+
+    let contList = "";
+    document.querySelectorAll('.content-check:checked').forEach(c => {
+        let p = c.value.split('||');
+        let tipoCP = c.closest('.cont-item').querySelector('.cp-select').value;
+        contList += `<li style="margin-bottom:8px;"><strong>[${tipoCP}] Contenido:</strong> ${p[0]} <br> <em>PDA:</em> ${p[1]}</li>`;
+    });
+    document.getElementById('p_contenidos').innerHTML = `<ul>${contList}</ul>`;
+
+    let sesRows = "";
+    document.querySelectorAll('.session-row').forEach((row, i) => {
+        sesRows += `<tr><td align="center">${i+1}</td><td>${row.querySelector('.uppercase').innerText}</td><td style="font-size:9pt;">${row.querySelector('.s-desc').value.replace(/\n/g, '<br>')}</td><td>${row.querySelector('.s-eval').value}</td><td>${row.querySelector('.s-mat').value}</td><td>${row.querySelector('.s-prod').value}</td></tr>`;
+    });
+    document.getElementById('p_body_sesiones').innerHTML = sesRows;
+    document.getElementById('p_instrumentos_des').innerHTML = document.getElementById('instrumentos_generados').innerHTML;
+}
+
+function descargarWord() {
+    try {
+        const documento = document.getElementById('documento_final');
+        if (!documento) {
+            alert("No se encontró el contenido para descargar.");
+            return;
+        }
+        const sourceHTML = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>" + documento.innerHTML + "</body></html>";
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+        const fileDownload = document.createElement("a");
+        document.body.appendChild(fileDownload);
+        fileDownload.href = source;
+        fileDownload.download = 'Plano_Didactico_Maravilla.doc';
+        fileDownload.click();
+        document.body.removeChild(fileDownload);
+    } catch (e) {
+        console.error("Error al descargar:", e);
+    }
+}
+</script> 
+</body>
+</html>
